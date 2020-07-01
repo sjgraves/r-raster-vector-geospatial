@@ -217,15 +217,6 @@ CHM_ov_HARV <- overlay(DSM_HARV,
                        fun = function(r1, r2) { return( r1 - r2) })
 ```
 
-We get an error: `Error in compareRaster(x) : different extent`. We must first change the extents of the two rasters to match if we are to use `overlay()`:
-
-```{r updateextents}
-extent(DSM_HARV)
-extent(DTM_HARV)
-extent(DTM_HARV) <- extent(DSM_HARV)
-#check new extent
-extent(DTM_HARV)
-```
 
 ```{r raster-overlay2}
 CHM_ov_HARV <- overlay(DSM_HARV,
