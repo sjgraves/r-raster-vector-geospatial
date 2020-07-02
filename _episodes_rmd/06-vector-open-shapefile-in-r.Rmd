@@ -177,11 +177,13 @@ ggplot() +
 > > point_HARV <- st_read("data/vector/HARVtower_UTM18N.shp")
 > > ```
 > > 
-> > Then we check its class: 
+> > Then we check the geometry type of each object: 
 > > ```{r}
-> > class(lines_HARV)
-> > class(point_HARV)
+> > st_geometry_type(lines_HARV)
+> > st_geometry_type(point_HARV)
 > > ```
+> > We see that the lines_HARV has a number of multilinestring geometry items, and the point_HARV item has a point item.
+>
 > > We also check the CRS and extent of each object: 
 > > ```{r}
 > > st_crs(lines_HARV)$proj4string
