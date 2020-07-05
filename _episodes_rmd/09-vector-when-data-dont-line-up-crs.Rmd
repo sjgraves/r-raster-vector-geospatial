@@ -1,15 +1,13 @@
 ---
 title: "Handling Spatial Projection & CRS in R"
+keypoints:
+- '`ggplot2` automatically converts all objects in a plot to the same CRS.'
+- Still be aware of the CRS and extent for each object.
+objectives: Plot vector objects with different CRSs in the same plot.
+questions: What do I do when vector data don't line up?
+source: Rmd
 teaching: 40
 exercises: 20
-questions:
-- "What do I do when vector data don't line up?"
-objectives:
-- "Plot vector objects with different CRSs in the same plot."
-keypoints:
-- "`ggplot2` automatically converts all objects in a plot to the same CRS."
-- "Still be aware of the CRS and extent for each object."
-source: Rmd
 ---
 
 ```{r setup, echo=FALSE}
@@ -18,12 +16,12 @@ source("../setup.R")
 knitr_fig_path("09-")
 ```
 
-```{r load-libraries, echo = FALSE, results='hide', message = FALSE, warning = FALSE}
-library(raster)
-library(rgdal)
+We will continue to work with the `sf` and the `ggplot2` packages that you have worked with in previous lessons.
+
+```{r load-libraries, echo = TRUE, results='hide', message = FALSE, warning = FALSE}
+#library(rgdal)
 library(sf)
 library(ggplot2)
-library(dplyr)
 ```
 
 > ## Things You’ll Need To Complete This Episode
@@ -35,23 +33,21 @@ In [an earlier episode]({{ site.baseurl }}/03-raster-reproject-in-r/)
 we learned how to handle a situation where you have two different
 files with raster data in different projections. Now we will apply
 those same principles to working with vector data.
+
 We will create a base map of our study site using United States
 state and country boundary information accessed from the
 [United States Census Bureau](https://www.census.gov/geo/maps-data/data/cbf/cbf_state.html).
 We will learn how to map vector data that are in different CRSs and thus
 don't line up on a map.
 
-We will continue to work with the three shapefiles that we loaded in the
-[Open and Plot Shapefiles in R]({{site.baseurl}}/06-vector-open-shapefile-in-r/) episode.
+We will continue to work with one of the shapefiles that we loaded in the
+[Open and Plot Shapefiles in R]({{site.baseurl}}/06-vector-open-shapefile-in-r/) episode. If you are continuning directly from earlier lessons, you may already have that object in your environment. If not, you should load the layer now.
 
-```{r load-data, echo = FALSE, results = 'hide', warning = FALSE, message = FALSE}
-# learners will have this data loaded from previous episodes
-aoi_boundary_HARV <- st_read("data/vector/HarClip_UTMZ18.shp")
-lines_HARV <- st_read("data/vector/HARV_roads.shp")
+```{r load-data, echo = TRUE, results = 'hide', warning = FALSE, message = FALSE}
+
+# load vector data for the HARV site
 point_HARV <- st_read("data/vector/HARVtower_UTM18N.shp")
-CHM_HARV <- raster("data/raster/HARV_chmCrop.tif")
-CHM_HARV_df <- as.data.frame(CHM_HARV, xy = TRUE)
-roadColors <- c("blue", "green", "grey", "purple")[lines_HARV$TYPE]
+
 ```
 
 ## Working With Spatial Data From Different Sources
@@ -87,8 +83,6 @@ are also required for any geoprocessing / spatial analysis. Data need
 to be in
 the same CRS to ensure accurate results.
 
-We will continue to use the `sf` and `raster` packages in this episode.
-
 ## Import US Boundaries - Census Data
 
 There are many good sources of boundary base layers that we can use to create a
@@ -102,7 +96,7 @@ mapping.
 ## Read US Boundary File
 
 We will use the `st_read()` function to import the
-`/US-Boundary-Layers/US-State-Boundaries-Census-2014` layer into R. This layer
+`US-State-Boundaries-Census-2014` layer into R. This layer
 contains the boundaries of all contiguous states in the U.S. Please note that
 these data have been modified and reprojected from the original data downloaded
 from the Census website to support the learning goals of this episode.
@@ -111,7 +105,7 @@ from the Census website to support the learning goals of this episode.
 state_boundary_US <- st_read("data/vector/US-State-Boundaries-Census-2014.shp")
 ```
 
-Next, let's plot the U.S. states data:
+Next, let's plot the U.S. states data. We will use `ggplot2` for a quick plot of the vector data, with an informative title.
 
 ```{r find-coordinates }
 ggplot() +
@@ -124,43 +118,43 @@ ggplot() +
 
 We can add a boundary layer of the United States to our map - to make it look
 nicer. We will import
-`NEON-DS-Site-Layout-Files/US-Boundary-Layers/US-Boundary-Dissolved-States`.
+`US-Boundary-Dissolved-States`. This vector layer is the outline of the US contiguous states. Is it called dissolved because the state boundaries have been removed, or dissolved, leaving just the outline. While dissolve may seem like an unusual term, it is a common geospatial task.
 
 ```{r}
 country_boundary_US <- st_read("data/vector/US-Boundary-Dissolved-States.shp")
 ```
 
-If we specify a thicker line width using `size = 2` for the border layer, it will
+We can add the boundary to our figure by adding a layer to the `ggplot()` block. If we specify a thicker line width using `size = 2` for the border layer, it will
 make our map pop! We will also manually set the colors of the state boundaries
 and country boundaries.
 
 ```{r us-boundaries-thickness}
 ggplot() +
-  geom_sf(data = country_boundary_US, color = "gray18", size = 2) +
-  geom_sf(data = state_boundary_US, color = "gray40") +
+  geom_sf(data = country_boundary_US, size = 2) +
+  geom_sf(data = state_boundary_US) +
   ggtitle("Map of Contiguous US State Boundaries") +
   coord_sf()
 ```
 
-Next, let's add the location of a flux tower where our study area is.
+Next, let's add the location of a flux tower where our study area is in the HARV site.
 As we are adding these layers, take note of the CRS of each object.
-First let's look at the CRS of our tower location object:
+
+First let's look at the CRS of our tower location object. We will use the `st_crs` function and assign it to an object. This will make it easier for us to compare with the other vector data. As we saw in an earlier episode, the project string gives us a lot of the project information that we need.
 
 ```{r crs-sleuthing-1}
-st_crs(point_HARV)
+point_HARV_crs <- st_crs(point_HARV)
+point_HARV_crs$proj4string
 ```
 
-Our project string for `DSM_HARV` specifies the UTM projection as follows:
+Our project string for `point_HARV` specifies the UTM projection as follows:
 
-`+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0`
+`+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs`
 
 * **proj=utm:** the projection is UTM, UTM has several zones.
 * **zone=18:** the zone is 18
 * **datum=WGS84:** the datum WGS84 (the datum refers to the  0,0 reference for
 the coordinate system used in the projection)
 * **units=m:** the units for the coordinates are in METERS.
-* **ellps=WGS84:** the ellipsoid (how the earth's  roundness is calculated) for
-the data is WGS84
 
 Note that the `zone` is unique to the UTM projection. Not all CRSs
 will have a
@@ -169,35 +163,27 @@ zone.
 Let's check the CRS of our state and country boundary objects:
 
 ```{r crs-sleuthing-2}
-st_crs(state_boundary_US)
-st_crs(country_boundary_US)
+st_crs(state_boundary_US)$proj4string
+st_crs(country_boundary_US)$proj4string
 ```
 
 Our project string for `state_boundary_US` and `country_boundary_US` specifies
 the lat/long projection as follows:
 
-`+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0`
+`+proj=longlat +datum=WGS84 +no_defs`
 
 * **proj=longlat:** the data are in a geographic (latitude and longitude)
 coordinate system
 * **datum=WGS84:** the datum WGS84 (the datum refers to the  0,0 reference for
 the coordinate system used in the projection)
-* **ellps=WGS84:** the ellipsoid (how the earth's roundness is calculated)
-is WGS84
 
 Note that there are no specified units above. This is because this geographic
 coordinate reference system is in latitude and longitude which is most
 often recorded in decimal degrees.
 
-> ## Data Tip
-> the last portion of each `proj4` string
-> is `+towgs84=0,0,0 `. This is a conversion factor that is used if a datum
-> conversion is required. We will not deal with datums in this episode series.
-{: .callout}
-
 ## CRS Units - View Object Extent
 
-Next, let's view the extent or spatial coverage for the `point_HARV` spatial
+From looking at the project string, we know that the HARV data and the US data are in different projections. But let's explore the data further. Next, let's view the extent or spatial coverage for the `point_HARV` spatial
 object compared to the `state_boundary_US` object.
 
 First we'll look at the extent for our study site:
@@ -237,8 +223,8 @@ without doing any conversion:
 
 ```{r layer-point-on-states}
 ggplot() +
-  geom_sf(data = country_boundary_US, size = 2, color = "gray18") +
-  geom_sf(data = state_boundary_US, color = "gray40") +
+  geom_sf(data = country_boundary_US, size = 2) +
+  geom_sf(data = state_boundary_US) +
   geom_sf(data = point_HARV, shape = 19, color = "purple") +
   ggtitle("Map of Contiguous US State Boundaries") +
   coord_sf()
@@ -257,7 +243,7 @@ ggplot() +
 > > ## Answers
 > >
 > > ```{r ne-states-harv}
-> > NE.States.Boundary.US <- st_read("data/NEON-DS-Site-Layout-Files/US-Boundary-Layers/Boundary-US-State-NEast.shp")
+> > NE.States.Boundary.US <- st_read("data/vector/Boundary-US-State-NEast.shp")
 > >
 > > ggplot() +
 > >     geom_sf(data = NE.States.Boundary.US, aes(color ="color"), show.legend = "line") +
