@@ -31,10 +31,10 @@ library(sf)
 
 ```{r load-data, echo = FALSE, results='hide'}
 # Learners will have this data loaded from earlier episodes
-lines_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HARV_roads.shp")
-aoi_boundary_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HarClip_UTMZ18.shp")
-country_boundary_US <- st_read("data/NEON-DS-Site-Layout-Files/US-Boundary-Layers/US-Boundary-Dissolved-States.shp")
-point_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HARVtower_UTM18N.shp")
+lines_HARV <- st_read("data/vector/HARV_roads.shp")
+aoi_boundary_HARV <- st_read("data/vector/HarClip_UTMZ18.shp")
+country_boundary_US <- st_read("data/vector/US-Boundary-Dissolved-States.shp")
+point_HARV <- st_read("data/vector/HARVtower_UTM18N.shp")
 ```
 
 > ## Things You’ll Need To Complete This Episode
@@ -71,7 +71,7 @@ that new object:
 
 ```{r read-csv }
 plot_locations_HARV <-
-  read.csv("data/NEON-DS-Site-Layout-Files/HARV/HARV_PlotLocations.csv")
+  read.csv("data/HARV_PlotLocations.csv")
 
 str(plot_locations_HARV)
 ```
@@ -227,7 +227,7 @@ That's really handy!
 > >
 > > ```{r}
 > > newplot_locations_HARV <-
-> >   read.csv("data/NEON-DS-Site-Layout-Files/HARV/HARV_2NewPhenPlots.csv")
+> >   read.csv("data/HARV_2NewPhenPlots.csv")
 > > str(newplot_locations_HARV)
 > > ```
 > >
