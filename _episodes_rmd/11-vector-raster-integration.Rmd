@@ -20,37 +20,6 @@ source("../setup.R")
 knitr_fig_path("11-")
 ```
 
-```{r load-libraries, echo = FALSE, results = 'hide', message = FALSE, warning = FALSE}
-library(sf)
-library(raster)
-library(rgdal)
-library(ggplot2)
-library(dplyr)
-```
-
-
-```{r load-data, echo = FALSE, results='hide'}
-# Learners will have this data loaded from earlier episodes
-# shapefiles
-point_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HARVtower_UTM18N.shp")
-lines_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HARV_roads.shp")
-aoi_boundary_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HarClip_UTMZ18.shp")
-
-# CHM
-CHM_HARV <-
-  raster("data/NEON-DS-Airborne-Remote-Sensing/HARV/CHM/HARV_chmCrop.tif")
-
-CHM_HARV_df <- as.data.frame(CHM_HARV, xy = TRUE)
-
-# plot locations
-plot_locations_HARV <-
-  read.csv("data/NEON-DS-Site-Layout-Files/HARV/HARV_PlotLocations.csv")
-utm18nCRS <- st_crs(point_HARV)
-plot_locations_sp_HARV <- st_as_sf(plot_locations_HARV, 
-                                   coords = c("easting", "northing"), 
-                                   crs = utm18nCRS)
-```
-
 > ## Things You’ll Need To Complete This Episode
 >
 > See the [lesson homepage]({{ site.baseurl }}) for detailed information about the software,
@@ -61,6 +30,36 @@ This episode explains how to crop a raster using the extent of a vector
 shapefile. We will also cover how to extract values from a raster that occur
 within a set of polygons, or in a buffer (surrounding) region around a set of
 points.
+
+We will continue to work with specific packages for working with spatial data. Let's load all of the packages we have been working with in this lesson.
+
+```{r load-libraries, echo = TRUE, results = 'hide', message = FALSE, warning = FALSE}
+library(sf)
+library(raster)
+library(rgdal)
+library(ggplot2)
+library(dplyr)
+```
+
+We will also continue to work with the HARV vector data. You may have these layers already loaded into your enviroment, but if not, load them now.
+
+```{r load-data, echo = FALSE, results='hide'}
+# shapefiles
+point_HARV <- st_read("data/vector/HARVtower_UTM18N.shp")
+lines_HARV <- st_read("data/vector/HARV_roads.shp")
+aoi_boundary_HARV <- st_read("data/vector/HarClip_UTMZ18.shp")
+
+# CHM
+CHM_HARV <- raster("data/raster/HARV_chmCrop.tif")
+CHM_HARV_df <- as.data.frame(CHM_HARV, xy = TRUE)
+
+# plot locations
+plot_locations_HARV <- read.csv("data/HARV_PlotLocations.csv")
+utm18nCRS <- st_crs(point_HARV)
+plot_locations_sp_HARV <- st_as_sf(plot_locations_HARV, 
+                                   coords = c("easting", "northing"), 
+                                   crs = utm18nCRS)
+```
 
 ## Crop a Raster to Vector Extent
 
@@ -86,8 +85,8 @@ we have worked with in this workshop:
 CHM_HARV_sp <- st_as_sf(CHM_HARV_df, coords = c("x", "y"), crs = utm18nCRS)
 # approximate the boundary box with a random sample of raster points
 CHM_rand_sample <- sample_n(CHM_HARV_sp, 10000)
-lines_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/HARV_roads.shp")
-plots_HARV <- st_read("data/NEON-DS-Site-Layout-Files/HARV/PlotLocations_HARV.shp")
+lines_HARV <- st_read("data/vector/HARV_roads.shp")
+plots_HARV <- st_read("data/vector/PlotLocations_HARV.shp")
 ```
 
 ```{r compare-data-extents, echo = FALSE}
@@ -125,7 +124,6 @@ To illustrate this, we will crop the Canopy Height Model (CHM) to only include t
 ```{r crop-by-vector-extent}
 ggplot() +
   geom_raster(data = CHM_HARV_df, aes(x = x, y = y, fill = HARV_chmCrop)) + 
-  scale_fill_gradientn(name = "Canopy Height", colors = terrain.colors(10)) +
   geom_sf(data = aoi_boundary_HARV, color = "blue", fill = NA) +
   coord_sf()
 ```
@@ -141,10 +139,10 @@ CHM_HARV_Cropped <- crop(x = CHM_HARV, y = aoi_boundary_HARV)
 
 Now we can plot the cropped CHM data, along with a boundary box showing the full
 CHM extent. However, remember, since this is raster data, we need to convert to
-a data frame in order to plot using `ggplot`. To get the boundary box from CHM,
-the `st_bbox()` will extract the 4 corners of the rectangle that encompass all
-the features contained in this object. The `st_as_sfc()` converts these 4
-coordinates into a polygon that we can plot:
+a data frame in order to plot using `ggplot`.
+
+
+For this plot, I am going to do a little trick to add the extent of the CHM to our plot, without creating a spatial extent object and without including the actual CHM in the plot. To get the spatial extent, I am going to use the `st_bbox()` function. This stands for bounding box, and the function will extract the 4 corners of the rectangle that encompass all the features contained in this object. I will also use the function `st_as_sfc` that we saw before to convert the extent into a spatial object that we can include in our plot. All of this will happen within the `geom_sf` function in our `ggplot` code. 
 
 ```{r show-cropped-area}
 CHM_HARV_Cropped_df <- as.data.frame(CHM_HARV_Cropped, xy = TRUE)
@@ -154,7 +152,6 @@ ggplot() +
           color = "green", alpha = .2) +  
   geom_raster(data = CHM_HARV_Cropped_df,
               aes(x = x, y = y, fill = HARV_chmCrop)) + 
-  scale_fill_gradientn(name = "Canopy Height", colors = terrain.colors(10)) + 
   coord_sf()
 ```
 
@@ -171,19 +168,6 @@ ggplot() +
   scale_fill_gradientn(name = "Canopy Height", colors = terrain.colors(10)) + 
   coord_sf()
 ```
-
-We can look at the extent of all of our other objects for this field site.
-
-``` {r view-extent}
-st_bbox(CHM_HARV)
-st_bbox(CHM_HARV_Cropped)
-st_bbox(aoi_boundary_HARV)
-st_bbox(plot_locations_sp_HARV)
-```
-
-Our plot location extent is not the largest but is larger than the AOI Boundary.
-It would be nice to see our vegetation plot locations plotted on top of the
-Canopy Height Model information.
 
 > ## Challenge: Crop to Vector Points Extent
 > 
@@ -227,8 +211,6 @@ CHM_plots_HARVcrop_sp <- st_as_sf(CHM_plots_HARVcrop_df, coords = c("x", "y"), c
 CHM_plots_HARVcrop_sp_rand_sample = sample_n(CHM_plots_HARVcrop_sp, 10000)
 ```
 
-```{r repeat-compare-data-extents, ref.label="compare-data-extents", echo = FALSE}
-```
 
 ## Define an Extent
 
@@ -270,7 +252,6 @@ ggplot() +
   geom_sf(data = aoi_boundary_HARV, color = "blue", fill = NA) +
   geom_raster(data = CHM_HARV_manual_cropped_df,
               aes(x = x, y = y, fill = HARV_chmCrop)) + 
-  scale_fill_gradientn(name = "Canopy Height", colors = terrain.colors(10)) + 
   coord_sf()
 ```
 
